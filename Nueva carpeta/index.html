@@ -1,0 +1,511 @@
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Árbol Genealógico Interactivo</title>
+    <!-- Incluyendo Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Incluyendo Google Fonts para una mejor tipografía -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Estilos personalizados para el cuerpo y los conectores del árbol */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Un gris claro para el fondo */
+        }
+        .tree-container {
+            /* Usamos flexbox para organizar los niveles verticalmente */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 2rem;
+            gap: 4rem; /* Espacio entre generaciones */
+        }
+        .level {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinea los nodos en la parte superior */
+            position: relative;
+        }
+        .node {
+            /* Estilo base para cada persona en el árbol */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            padding: 0 1rem;
+        }
+        .circle {
+            /* Estilo para los círculos que contienen las iniciales */
+            width: 5rem; /* 80px */
+            height: 5rem; /* 80px */
+            border-radius: 9999px; /* Círculo perfecto */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.5rem; /* 24px */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            transition: background-color 0.3s ease, width 0.3s ease, height 0.3s ease; /* Transición suave */
+        }
+        .circle-lg {
+            /* Clase para los círculos más grandes del linaje principal */
+            width: 7rem; /* 112px */
+            height: 7rem; /* 112px */
+            font-size: 2rem;
+        }
+        .circle-xl {
+            /* Clase para el círculo principal del usuario */
+            width: 8rem; /* 128px */
+            height: 8rem; /* 128px */
+            font-size: 2.5rem;
+        }
+        .label {
+            /* Estilo para el nombre/parentesco debajo del círculo */
+            margin-top: 0.5rem;
+            font-weight: 600;
+            color: #374151; /* gray-700 */
+            white-space: nowrap;
+        }
+        .element-label {
+            margin-top: 0.25rem;
+            font-size: 0.875rem; /* text-sm */
+            color: #4b5563; /* gray-600 */
+            font-style: italic;
+            min-height: 1.25rem; /* asegura espacio incluso si está vacío */
+        }
+        
+        /* --- Estilos para las líneas de conexión --- */
+        
+        /* Línea vertical que baja de un nodo del linaje principal */
+        .line-down::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            width: 3px; /* Línea más gruesa */
+            height: 2rem; /* 32px de altura */
+            background-color: #6b7280; /* gray-500 */
+        }
+
+        /* Línea vertical que baja desde un grupo (level) */
+        .level.line-down::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 2rem;
+            background-color: #6b7280;
+        }
+        
+        /* Línea vertical que sube de un nodo del linaje principal */
+        .line-up::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translateX(-50%);
+            width: 3px; /* Línea más gruesa */
+            height: 2rem; /* 32px de altura */
+            background-color: #6b7280; /* gray-500 */
+        }
+        
+        /* Línea horizontal que conecta un grupo de nodos del linaje principal */
+        .connector-horizontal {
+            position: absolute;
+            top: -2rem; /* Alineado con las line-up */
+            height: 3px; /* Línea más gruesa */
+            background-color: #6b7280; /* gray-500 */
+            left: 25%;
+            right: 25%;
+        }
+        
+        /* Conector para parejas (más delgado para diferenciar) */
+        .couple-connector {
+            position: absolute;
+            top: 2.5rem; /* Centrado verticalmente en el círculo estándar */
+            height: 2px;
+            background-color: #9ca3af; /* gray-400 */
+            left: 50%;
+            width: calc(100% - 10rem); /* Ajusta el ancho para conectar los centros */
+            transform: translateX(-50%);
+        }
+        .couple-connector.large {
+             top: 3.5rem; /* Centrado para los círculos grandes */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 overflow-x-auto">
+
+    <div class="tree-container">
+        
+        <!-- Nivel 0: Abuelos -->
+        <div class="level w-full flex justify-center gap-x-16 md:gap-x-32">
+            <!-- Abuelos Paternos -->
+            <div class="level relative line-down">
+                <div class="couple-connector"></div>
+                <div class="node">
+                    <div id="circle-abuelo-paterno" class="circle bg-indigo-500">II</div>
+                    <span class="label">Abuelo Paterno</span>
+                    <span id="element-abuelo-paterno" class="element-label"></span>
+                </div>
+                <div class="node">
+                    <div id="circle-abuela-paterna" class="circle bg-violet-500">CD</div>
+                    <span class="label">Abuela Paterna</span>
+                    <span id="element-abuela-paterna" class="element-label"></span>
+                </div>
+            </div>
+            <!-- Abuelos Maternos -->
+            <div class="level relative line-down">
+                <div class="couple-connector"></div>
+                <div class="node">
+                    <div id="circle-abuelo-materno" class="circle bg-blue-800">CI</div>
+                    <span class="label">Abuelo Materno</span>
+                    <span id="element-abuelo-materno" class="element-label"></span>
+                </div>
+                <div class="node">
+                    <div id="circle-abuela-materna" class="circle bg-rose-800">ED</div>
+                    <span class="label">Abuela Materna</span>
+                    <span id="element-abuela-materna" class="element-label"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nivel 1: Padres y Tíos -->
+        <div class="level relative w-full justify-center items-start gap-x-16 md:gap-x-32">
+            <!-- Conector de linaje principal -->
+            <div class="absolute bg-gray-500" style="height: 3px; top: 3.5rem; left: 30%; right: 30%; z-index: -1;"></div>
+            <div class="absolute bg-gray-500" style="width: 3px; top: 3.5rem; left: 50%; height: calc(100% - 3.5rem + 4rem); transform: translateX(-50%);"></div>
+
+            <!-- Rama Paterna -->
+            <div class="level relative">
+                <div class="connector-horizontal"></div> <!-- Conector de hermanos -->
+                <div class="node line-up">
+                    <div id="circle-tio-paterno" class="circle bg-green-600">PI</div>
+                    <span class="label">Tío Paterno</span>
+                    <span id="element-tio-paterno" class="element-label"></span>
+                </div>
+                <div class="node line-up">
+                    <div id="circle-tia-paterna" class="circle bg-yellow-600">PD</div>
+                    <span class="label">Tía Paterna</span>
+                    <span id="element-tia-paterna" class="element-label"></span>
+                </div>
+                <div class="node line-up">
+                    <div id="circle-papa" class="circle circle-lg bg-sky-500">PI</div>
+                    <span class="label">Papá</span>
+                    <span id="element-papa" class="element-label"></span>
+                </div>
+            </div>
+            <!-- Rama Materna -->
+            <div class="level relative">
+                <div class="connector-horizontal"></div> <!-- Conector de hermanos -->
+                <div class="node line-up">
+                    <div id="circle-mama" class="circle circle-lg bg-pink-500">ID</div>
+                    <span class="label">Mamá</span>
+                    <span id="element-mama" class="element-label"></span>
+                </div>
+                 <div class="node line-up">
+                    <div id="circle-tio-materno" class="circle bg-red-600">II</div>
+                    <span class="label">Tío Materno</span>
+                    <span id="element-tio-materno" class="element-label"></span>
+                </div>
+                <div class="node line-up">
+                    <div id="circle-tia-materna" class="circle bg-orange-600">ID</div>
+                    <span class="label">Tía Materna</span>
+                    <span id="element-tia-materna" class="element-label"></span>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Nivel 2: Tú, Hermanos y Cuñados -->
+        <div class="level relative gap-x-8 md:gap-x-16">
+            <div class="connector-horizontal" style="left: 10%; right: 10%;"></div>
+            <!-- Rama del Hermano -->
+            <div class="level flex-col items-center">
+                <div class="level relative">
+                    <div class="couple-connector large"></div>
+                    <div class="node">
+                        <div id="circle-cunada" class="circle bg-pink-400">PD</div>
+                        <span class="label">Cuñada</span>
+                        <span id="element-cunada" class="element-label"></span>
+                    </div>
+                    <div class="node line-up line-down">
+                        <div id="circle-hermano" class="circle circle-lg bg-teal-500">RI</div>
+                        <span class="label">Hermano</span>
+                        <span id="element-hermano" class="element-label"></span>
+                    </div>
+                </div>
+                <div class="level relative mt-16">
+                    <div class="connector-horizontal"></div>
+                    <div class="node line-up">
+                        <div id="circle-sobrino-hermano" class="circle bg-gray-500">ED</div>
+                        <span class="label">Sobrino</span>
+                        <span id="element-sobrino-hermano" class="element-label"></span>
+                    </div>
+                    <div class="node line-up">
+                        <div id="circle-sobrina-hermano" class="circle bg-gray-500">EI</div>
+                        <span class="label">Sobrina</span>
+                        <span id="element-sobrina-hermano" class="element-label"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Tú (Nodo Interactivo) -->
+            <div class="node line-up line-down">
+                <div id="user-circle" class="circle circle-xl bg-purple-500 border-4 border-purple-300">RD</div>
+                <span id="user-label" class="label">Tú (Mujer)</span>
+                <span id="element-user" class="element-label"></span>
+                <div class="mt-2 w-40 flex flex-col gap-2">
+                    <select id="gender-selector" class="w-full rounded-md border-gray-300 shadow-sm p-2 text-sm">
+                        <option value="mujer">Mujer</option>
+                        <option value="hombre">Hombre</option>
+                    </select>
+                    <select id="element-selector" class="w-full rounded-md border-gray-300 shadow-sm p-2 text-sm">
+                        <option value="default">Elige tu elemento</option>
+                        <option value="tierra-yang">Tierra Yang</option>
+                        <option value="tierra-yin">Tierra Yin</option>
+                        <option value="fuego-yang">Fuego Yang</option>
+                        <option value="fuego-yin">Fuego Yin</option>
+                        <option value="madera-yang">Madera Yang</option>
+                        <option value="madera-yin">Madera Yin</option>
+                        <option value="agua-yang">Agua Yang</option>
+                        <option value="agua-yin">Agua Yin</option>
+                        <option value="metal-yang">Metal Yang</option>
+                        <option value="metal-yin">Metal Yin</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Rama de la Hermana -->
+            <div class="level flex-col items-center">
+                <div class="level relative">
+                    <div class="couple-connector large"></div>
+                    <div class="node line-up line-down">
+                        <div id="circle-hermana" class="circle circle-lg bg-rose-500">RD</div>
+                        <span class="label">Hermana</span>
+                        <span id="element-hermana" class="element-label"></span>
+                    </div>
+                    <div class="node">
+                        <div id="circle-cunado" class="circle bg-orange-400">EI</div>
+                        <span class="label">Cuñado</span>
+                        <span id="element-cunado" class="element-label"></span>
+                    </div>
+                </div>
+                <div class="level relative mt-16">
+                    <div class="connector-horizontal"></div>
+                    <div class="node line-up">
+                        <div id="circle-sobrina-hermana" class="circle bg-gray-500">CI</div>
+                        <span class="label">Sobrina</span>
+                        <span id="element-sobrina-hermana" class="element-label"></span>
+                    </div>
+                    <div class="node line-up">
+                        <div id="circle-sobrino-hermana" class="circle bg-gray-500">CD</div>
+                        <span class="label">Sobrino</span>
+                        <span id="element-sobrino-hermana" class="element-label"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Nivel 3: Parejas y Nivel 4: Hijos/Nietos -->
+        <div class="level w-full flex-wrap justify-center gap-x-16 gap-y-8">
+            <!-- Columna de Parejas -->
+            <div class="flex flex-col items-center gap-8 mt-8">
+                 <div class="node line-up">
+                    <div id="circle-esposo" class="circle bg-orange-500">EI</div>
+                    <span id="spouse-label" class="label">Esposo</span>
+                    <span id="element-esposo" class="element-label"></span>
+                </div>
+                 <div class="node line-up">
+                    <div id="circle-novio" class="circle bg-amber-500">ED</div>
+                    <span id="partner-label" class="label">Novio</span>
+                    <span id="element-novio" class="element-label"></span>
+                </div>
+            </div>
+            <!-- Columna de Descendientes -->
+            <div class="flex flex-col items-center">
+                <div class="level relative gap-8 md:gap-16">
+                    <div class="connector-horizontal" style="left: 10%; right: 10%;"></div>
+                    <!-- Rama del Hijo -->
+                    <div class="level flex-col items-center">
+                        <div class="level relative">
+                            <div class="couple-connector large"></div>
+                            <div class="node">
+                                <div id="circle-nuera" class="circle bg-red-400">ED</div>
+                                <span class="label">Nuera</span>
+                                <span id="element-nuera" class="element-label"></span>
+                            </div>
+                            <div class="node line-up line-down">
+                                <div id="circle-hijo" class="circle circle-lg bg-blue-400">CI</div>
+                                <span class="label">Hijo</span>
+                                <span id="element-hijo" class="element-label"></span>
+                            </div>
+                        </div>
+                        <div class="level relative mt-16">
+                            <div class="connector-horizontal"></div>
+                            <div class="node line-up">
+                                <div id="circle-nieto-hijo" class="circle bg-cyan-400">II</div>
+                                <span class="label">Nieto del hijo</span>
+                                <span id="element-nieto-hijo" class="element-label"></span>
+                            </div>
+                            <div class="node line-up">
+                                <div id="circle-nieta-hijo" class="circle bg-lime-400">ID</div>
+                                <span class="label">Nieta del hijo</span>
+                                <span id="element-nieta-hijo" class="element-label"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Rama de la Hija -->
+                    <div class="level flex-col items-center">
+                        <div class="level relative">
+                            <div class="couple-connector large"></div>
+                            <div class="node line-up line-down">
+                                <div id="circle-hija" class="circle circle-lg bg-fuchsia-500">CD</div>
+                                <span class="label">Hija</span>
+                                <span id="element-hija" class="element-label"></span>
+                            </div>
+                            <div class="node">
+                                <div id="circle-yerno" class="circle bg-gray-600">II</div>
+                                <span class="label">Yerno</span>
+                                <span id="element-yerno" class="element-label"></span>
+                            </div>
+                        </div>
+                        <div class="level relative mt-16">
+                            <div class="connector-horizontal"></div>
+                            <div class="node line-up">
+                                <div id="circle-nieto-hija" class="circle bg-green-400">PI</div>
+                                <span class="label">Nieto</span>
+                                <span id="element-nieto-hija" class="element-label"></span>
+                            </div>
+                            <div class="node line-up">
+                                <div id="circle-nieta-hija" class="circle bg-yellow-400">PD</div>
+                                <span class="label">Nieta</span>
+                                <span id="element-nieta-hija" class="element-label"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const genderSelector = document.getElementById('gender-selector');
+            const elementSelector = document.getElementById('element-selector');
+            const userLabel = document.getElementById('user-label');
+            const spouseLabel = document.getElementById('spouse-label');
+            const partnerLabel = document.getElementById('partner-label');
+
+            const elementColors = {
+                'default': 'bg-purple-500', 'tierra-yang': 'bg-yellow-700', 'tierra-yin': 'bg-amber-600',
+                'fuego-yang': 'bg-red-600', 'fuego-yin': 'bg-orange-500', 'madera-yang': 'bg-green-600',
+                'madera-yin': 'bg-lime-600', 'agua-yang': 'bg-blue-600', 'agua-yin': 'bg-sky-500',
+                'metal-yang': 'bg-slate-500', 'metal-yin': 'bg-gray-400'
+            };
+            
+            const nameToKey = {
+                'Tierra Yang': 'tierra-yang', 'Tierra Yin': 'tierra-yin', 'Fuego Yang': 'fuego-yang', 'Fuego Yin': 'fuego-yin',
+                'Madera Yang': 'madera-yang', 'Madera Yin': 'madera-yin', 'Agua Yang': 'agua-yang', 'Agua Yin': 'agua-yin',
+                'Metal Yang': 'metal-yang', 'Metal Yin': 'metal-yin'
+            };
+
+            const elementRelationships = {
+                'tierra-yang': { RD: 'Tierra Yang', RI: 'Tierra Yin', CD: 'Metal Yang', CI: 'Metal Yin', PD: 'Agua Yang', PI: 'Agua Yin', ED: 'Madera Yang', EI: 'Madera Yin', ID: 'Fuego Yang', II: 'Fuego Yin' },
+                'tierra-yin':  { RD: 'Tierra Yin', RI: 'Tierra Yang', CD: 'Metal Yin', CI: 'Metal Yang', PD: 'Agua Yin', PI: 'Agua Yang', ED: 'Madera Yin', EI: 'Madera Yang', ID: 'Fuego Yin', II: 'Fuego Yang' },
+                'metal-yang':  { RD: 'Metal Yang', RI: 'Metal Yin', CD: 'Agua Yang', CI: 'Agua Yin', PD: 'Madera Yang', PI: 'Madera Yin', ED: 'Fuego Yang', EI: 'Fuego Yin', ID: 'Tierra Yang', II: 'Tierra Yin' },
+                'metal-yin':   { RD: 'Metal Yin', RI: 'Metal Yang', CD: 'Agua Yin', CI: 'Agua Yang', PD: 'Madera Yin', PI: 'Madera Yang', ED: 'Fuego Yin', EI: 'Fuego Yang', ID: 'Tierra Yin', II: 'Tierra Yang' },
+                'agua-yang':   { RD: 'Agua Yang', RI: 'Agua Yin', CD: 'Madera Yang', CI: 'Madera Yin', PD: 'Fuego Yang', PI: 'Fuego Yin', ED: 'Tierra Yang', EI: 'Tierra Yin', ID: 'Metal Yang', II: 'Metal Yin' },
+                'agua-yin':    { RD: 'Agua Yin', RI: 'Agua Yang', CD: 'Madera Yin', CI: 'Madera Yang', PD: 'Fuego Yin', PI: 'Fuego Yang', ED: 'Tierra Yin', EI: 'Tierra Yang', ID: 'Metal Yin', II: 'Metal Yang' },
+                'madera-yang': { RD: 'Madera Yang', RI: 'Madera Yin', CD: 'Fuego Yang', CI: 'Fuego Yin', PD: 'Tierra Yang', PI: 'Tierra Yin', ED: 'Metal Yang', EI: 'Metal Yin', ID: 'Agua Yang', II: 'Agua Yin' },
+                'madera-yin':  { RD: 'Madera Yin', RI: 'Madera Yang', CD: 'Fuego Yin', CI: 'Fuego Yang', PD: 'Tierra Yin', PI: 'Tierra Yang', ED: 'Metal Yin', EI: 'Metal Yang', ID: 'Agua Yin', II: 'Agua Yang' },
+                'fuego-yang':  { RD: 'Fuego Yang', RI: 'Fuego Yin', CD: 'Tierra Yang', CI: 'Tierra Yin', PD: 'Metal Yang', PI: 'Metal Yin', ED: 'Agua Yang', EI: 'Agua Yin', ID: 'Madera Yang', II: 'Madera Yin' },
+                'fuego-yin':   { RD: 'Fuego Yin', RI: 'Fuego Yang', CD: 'Tierra Yin', CI: 'Tierra Yang', PD: 'Metal Yin', PI: 'Metal Yang', ED: 'Agua Yin', EI: 'Agua Yang', ID: 'Madera Yin', II: 'Madera Yang' }
+            };
+
+            const memberIdToKeyFemale = {
+                'circle-abuelo-paterno': 'II', 'circle-abuela-paterna': 'CD', 'circle-abuelo-materno': 'CI', 'circle-abuela-materna': 'ED',
+                'circle-papa': 'PI', 'circle-tio-paterno': 'PI', 'circle-tia-paterna': 'PD', 'circle-mama': 'ID', 'circle-tio-materno': 'II', 'circle-tia-materna': 'ID',
+                'circle-hermano': 'RI', 'circle-cunada': 'PD', 'circle-sobrino-hermano': 'ED', 'circle-sobrina-hermano': 'EI',
+                'user-circle': 'RD', 'circle-hermana': 'RD', 'circle-cunado': 'EI', 'circle-sobrina-hermana': 'CI', 'circle-sobrino-hermana': 'CD',
+                'circle-esposo': 'EI', 'circle-novio': 'ED', 'circle-hija': 'CD', 'circle-yerno': 'II', 'circle-nieto-hija': 'PI', 'circle-nieta-hija': 'PD',
+                'circle-hijo': 'CI', 'circle-nuera': 'ED', 'circle-nieto-hijo': 'II', 'circle-nieta-hijo': 'ID'
+            };
+
+            const memberIdToKeyMale = {
+                'circle-abuelo-paterno': 'ID', 'circle-abuela-paterna': 'CI', 'circle-abuelo-materno': 'CD', 'circle-abuela-materna': 'EI',
+                'circle-papa': 'PD', 'circle-tio-paterno': 'PD', 'circle-tia-paterna': 'PI', 'circle-mama': 'II', 'circle-tio-materno': 'ID', 'circle-tia-materna': 'II',
+                'circle-hermano': 'RD', 'circle-cunada': 'PI', 'circle-sobrino-hermano': 'ED', 'circle-sobrina-hermano': 'EI',
+                'user-circle': 'RD', 'circle-hermana': 'RI', 'circle-cunado': 'ED', 'circle-sobrina-hermana': 'CI', 'circle-sobrino-hermana': 'CD',
+                'circle-esposo': 'PI', 'circle-novio': 'PD', 'circle-hija': 'EI', 'circle-yerno': 'RI', 'circle-nieto-hija': 'II', 'circle-nieta-hija': 'ID',
+                'circle-hijo': 'ED', 'circle-nuera': 'RI', 'circle-nieto-hijo': 'CI', 'circle-nieta-hijo': 'CD'
+            };
+
+            function updateTree() {
+                const selectedGender = genderSelector.value;
+                const selectedElement = elementSelector.value;
+                const memberMap = selectedGender === 'mujer' ? memberIdToKeyFemale : memberIdToKeyMale;
+                
+                // Update labels based on gender
+                userLabel.innerText = selectedGender === 'mujer' ? 'Tú (Mujer)' : 'Tú (Hombre)';
+                spouseLabel.innerText = selectedGender === 'mujer' ? 'Esposo' : 'Esposa';
+                partnerLabel.innerText = selectedGender === 'mujer' ? 'Novio' : 'Novia';
+
+                const isDefault = selectedElement === 'default';
+                const relationships = elementRelationships[selectedElement];
+
+                for (const [circleId, initialKey] of Object.entries(memberMap)) {
+                    const circleElement = document.getElementById(circleId);
+                    const elementLabelId = circleId.replace('circle-', 'element-');
+                    const elementLabel = document.getElementById(elementLabelId);
+
+                    if (!circleElement || !elementLabel) continue;
+                    
+                    // Update initials in the circle
+                    circleElement.innerText = initialKey;
+
+                    let newElementName = '';
+                    let newColorKey = '';
+
+                    if (!isDefault && relationships) {
+                        newElementName = relationships[initialKey];
+                        newColorKey = nameToKey[newElementName];
+                    }
+
+                    elementLabel.innerText = newElementName || '';
+                    
+                    // Ensure user circle always says RD
+                    if (circleId === 'user-circle') {
+                        circleElement.innerText = 'RD';
+                    }
+
+                    if (newColorKey) {
+                        Object.values(elementColors).forEach(colorClass => circleElement.classList.remove(colorClass));
+                        circleElement.classList.add(elementColors[newColorKey]);
+                    } else if (circleId === 'user-circle') {
+                        Object.values(elementColors).forEach(colorClass => circleElement.classList.remove(colorClass));
+                        circleElement.classList.add(elementColors['default']);
+                    }
+                }
+            }
+
+            genderSelector.addEventListener('change', updateTree);
+            elementSelector.addEventListener('change', updateTree);
+
+            // Initial load
+            updateTree(); 
+        });
+    </script>
+
+</body>
+</html>
